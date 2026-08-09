@@ -173,8 +173,9 @@ export default function Dashboard() {
           <button
             type="button"
             className="primary-button"
-            onClick={refetch}
+            onClick={() => refetch({ force: true })}
             disabled={loading}
+            title="Re-scrapes all accounts via Apify (uses credits)"
           >
             {loading ? "Syncing…" : "Force Sync Now"}
           </button>
@@ -183,7 +184,7 @@ export default function Dashboard() {
         {loading ? (
           <LoadingSkeleton />
         ) : error ? (
-          <ErrorState message={error} onRetry={refetch} />
+          <ErrorState message={error} onRetry={() => refetch()} />
         ) : (
           <>
             {/* Widgets */}
@@ -217,7 +218,7 @@ export default function Dashboard() {
                     @{name}: {msg}
                   </p>
                 ))}
-                <button type="button" className="primary-button" onClick={refetch}>
+                <button type="button" className="primary-button" onClick={() => refetch()}>
                   Retry
                 </button>
               </div>
