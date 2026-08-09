@@ -43,7 +43,7 @@ function LoginForm() {
       <div className={`${styles.card} glass-panel`}>
         <header className={styles.header}>
           <div className={styles.logo} aria-hidden="true">
-        F
+            IM
           </div>
           <h1>InstaMonitor</h1>
           <p>Enter the dashboard password to continue.</p>

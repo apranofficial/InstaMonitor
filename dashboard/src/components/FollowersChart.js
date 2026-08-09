@@ -98,7 +98,23 @@ export function FollowersChart({ data, selectedAccount, accounts }) {
     return points;
   }, [data, selectedAccount, accounts]);
 
-  if (chartData.length === 0) return null;
+  if (chartData.length === 0) {
+    return (
+      <div
+        className="heatmap-container glass-panel"
+        style={{ marginTop: "32px" }}
+      >
+        <h3 style={{ marginBottom: "8px" }}>
+          Followers Growth
+          {selectedAccount ? ` — @${selectedAccount}` : ""}
+        </h3>
+        <p className="chart-subtext">
+          No snapshots yet — followers history starts recording on the next
+          sync. Click &quot;Force Sync Now&quot; to take the first one.
+        </p>
+      </div>
+    );
+  }
 
   const single = chartData.length === 1;
 

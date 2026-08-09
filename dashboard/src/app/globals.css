@@ -98,6 +98,7 @@ body {
 
 .main-content {
   flex: 1;
+  min-width: 0;
   padding: 32px 48px;
   overflow-y: auto;
 }
@@ -107,12 +108,15 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .header h1 {
   font-size: 28px;
   font-weight: 600;
   letter-spacing: -0.5px;
+  white-space: nowrap;
 }
 
 .header p {
@@ -214,6 +218,8 @@ body {
 .heatmap-grid {
   display: flex;
   gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 .heatmap-column {
@@ -431,7 +437,7 @@ body {
 
 .calendar-cell {
   position: relative;
-  aspect-ratio: 1.4;
+  min-width: 0;
   min-height: 52px;
   display: flex;
   align-items: flex-start;
@@ -749,7 +755,13 @@ body {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.header-actions .ghost-button,
+.header-actions .primary-button {
+  white-space: nowrap;
 }
 
 .tab-bar {
