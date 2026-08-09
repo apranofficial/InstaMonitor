@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { TRACKED_ACCOUNTS } from "../config/accounts";
 import { useScrapeData } from "../hooks/useScrapeData";
+import { MonthlyCalendar } from "../components/MonthlyCalendar";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HEATMAP_DAYS = 30;
@@ -249,19 +250,11 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div
-              className="heatmap-container glass-panel"
-              style={{
-                height: "400px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <h2 style={{ color: "var(--text-secondary)" }}>
-                Detailed Calendar View Coming Soon
-              </h2>
-            </div>
+            <MonthlyCalendar
+              data={data}
+              selectedAccount={selectedAccount}
+              accounts={TRACKED_ACCOUNTS}
+            />
           </>
         )}
       </main>
