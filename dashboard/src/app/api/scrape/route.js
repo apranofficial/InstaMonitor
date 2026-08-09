@@ -135,9 +135,26 @@ export async function POST(request) {
       try {
         const { posts, followersCount } = await scrapeAccount(client, username);
         const scrapedAt = new Date();
-        
-        // Push the new followers count to history
-        const newHistoryRecord = { date: scrapedAt, followersCount };
+
+        // Snapshot engagement totals alongside followers so trends can
+        // be charted over time (beyond the rolling 30-post window).
+        const newHistoryRecord = {
+          date: scrapedAt,
+          followersCount,
+          totalLikes: posts.reduce((s, p) => s + (p.likesCount || 0), 0),
+          totalComments: posts.reduce((s, p) => s + (p.commentsCount || 0), 0),
+          totalViews: posts.reduce((s, p) => s + (p.viewsCount || 0), 0),
+          totalPosts: posts.length,
+        };
+
+        // Dedupe: replace any snapshot from the same calendar day so
+        // repeated force-syncs don't spam the history.
+        const dayStart = new Date(scrapedAt);
+        dayStart.setHours(0, 0, 0, 0);
+        await ScrapeCache.updateOne(
+          { username },
+          { $pull: { statsHistory: { date: { $gte: dayStart } } } }
+        ).catch(() => {});
 
         // Upsert into MongoDB cache.
         const updatedCache = await ScrapeCache.findOneAndUpdate(

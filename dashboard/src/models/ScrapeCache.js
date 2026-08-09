@@ -32,6 +32,10 @@ const ScrapeCacheSchema = new mongoose.Schema({
     {
       date: { type: Date, required: true },
       followersCount: { type: Number, required: true },
+      totalLikes: { type: Number, default: 0 },
+      totalComments: { type: Number, default: 0 },
+      totalViews: { type: Number, default: 0 },
+      totalPosts: { type: Number, default: 0 },
     },
   ],
   scrapedAt: {

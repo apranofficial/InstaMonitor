@@ -6,6 +6,8 @@ import { MonthlyCalendar } from "../components/MonthlyCalendar";
 import { HandlersTable } from "../components/HandlersTable";
 import { HandlerModal } from "../components/HandlerModal";
 import { AnalyticsChart } from "../components/AnalyticsChart";
+import { FollowersChart } from "../components/FollowersChart";
+import { HandlerPerformance } from "../components/HandlerPerformance";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HEATMAP_DAYS = 30;
@@ -102,8 +104,9 @@ function computeStats(data, trackedAccounts) {
         days[key] = (days[key] || 0) + 1;
         
         if (!dailyMetrics[username]) dailyMetrics[username] = {};
-        if (!dailyMetrics[username][key]) dailyMetrics[username][key] = { likes: 0, views: 0 };
+        if (!dailyMetrics[username][key]) dailyMetrics[username][key] = { likes: 0, comments: 0, views: 0 };
         dailyMetrics[username][key].likes += (post.likesCount || 0);
+        dailyMetrics[username][key].comments += (post.commentsCount || 0);
         dailyMetrics[username][key].views += vCount;
       }
     }
@@ -257,12 +260,14 @@ export default function Dashboard() {
       const key = dayKey(date);
       
       let likes = 0;
+      let comments = 0;
       let views = 0;
 
       for (const username of accountsToTally) {
         const metrics = stats.dailyMetrics[username]?.[key];
         if (metrics) {
           likes += metrics.likes;
+          comments += metrics.comments || 0;
           views += metrics.views;
         }
       }
@@ -270,6 +275,7 @@ export default function Dashboard() {
       days.push({
         dateLabel: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
         likes,
+        comments,
         views,
       });
     }
@@ -373,6 +379,16 @@ export default function Dashboard() {
             <p>{monthLabel}</p>
           </div>
           <div className="header-actions">
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST" });
+                window.location.href = "/login";
+              }}
+            >
+              Sign Out
+            </button>
             <div className="tab-bar">
               <button
                 type="button"
@@ -380,6 +396,13 @@ export default function Dashboard() {
                 onClick={() => setActiveTab("overview")}
               >
                 Overview
+              </button>
+              <button
+                type="button"
+                className={`tab-btn ${activeTab === "performance" ? "active" : ""}`}
+                onClick={() => setActiveTab("performance")}
+              >
+                Performance
               </button>
               <button
                 type="button"
@@ -512,7 +535,13 @@ export default function Dashboard() {
 
                 <AnalyticsChart
                   data={chartData}
-                  title={selectedAccount ? `Performance Growth — @${selectedAccount}` : "Overall Performance Growth"}
+                  title={selectedAccount ? `Engagement Trends — @${selectedAccount}` : "Overall Engagement Trends"}
+                />
+
+                <FollowersChart
+                  data={data}
+                  selectedAccount={selectedAccount}
+                  accounts={trackedAccounts}
                 />
 
                 <MonthlyCalendar
@@ -523,6 +552,13 @@ export default function Dashboard() {
               </div>
             )}
           </>
+        ) : activeTab === "performance" ? (
+          /* Performance Tab */
+          <HandlerPerformance
+            handlers={handlers}
+            data={data}
+            loading={handlersLoading || loading}
+          />
         ) : (
           /* Handlers Tab */
           <HandlersTable

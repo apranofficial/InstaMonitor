@@ -9,6 +9,12 @@ import {
   YAxis,
 } from "recharts";
 
+const SERIES = [
+  { key: "likes", label: "Likes", color: "#8b80c5" },
+  { key: "comments", label: "Comments", color: "#8fbfa8" },
+  { key: "views", label: "Views", color: "#5a88ba" },
+];
+
 /**
  * Custom Tooltip matching the Velune glassmorphism theme.
  */
@@ -17,20 +23,21 @@ function CustomTooltip({ active, payload, label }) {
     return (
       <div className="chart-tooltip glass-panel">
         <p className="tooltip-date">{label}</p>
-        <div className="tooltip-item">
-          <span className="tooltip-swatch" style={{ background: "#8b80c5" }} />
-          <span className="tooltip-label">Likes:</span>
-          <span className="tooltip-value">
-            {payload[0]?.value?.toLocaleString()}
-          </span>
-        </div>
-        <div className="tooltip-item">
-          <span className="tooltip-swatch" style={{ background: "#5a88ba" }} />
-          <span className="tooltip-label">Views:</span>
-          <span className="tooltip-value">
-            {payload[1]?.value?.toLocaleString()}
-          </span>
-        </div>
+        {payload.map((entry) => {
+          const series = SERIES.find((s) => s.key === entry.dataKey);
+          return (
+            <div key={entry.dataKey} className="tooltip-item">
+              <span
+                className="tooltip-swatch"
+                style={{ background: series?.color || entry.color }}
+              />
+              <span className="tooltip-label">{series?.label || entry.dataKey}:</span>
+              <span className="tooltip-value">
+                {entry.value?.toLocaleString()}
+              </span>
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -62,14 +69,19 @@ export function AnalyticsChart({ data, title }) {
             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
           >
             <defs>
-              <linearGradient id="colorLikes" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8b80c5" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#8b80c5" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#5a88ba" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#5a88ba" stopOpacity={0} />
-              </linearGradient>
+              {SERIES.map((s) => (
+                <linearGradient
+                  key={s.key}
+                  id={`color-${s.key}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="5%" stopColor={s.color} stopOpacity={0.4} />
+                  <stop offset="95%" stopColor={s.color} stopOpacity={0} />
+                </linearGradient>
+              ))}
             </defs>
             <XAxis
               dataKey="dateLabel"
@@ -88,26 +100,33 @@ export function AnalyticsChart({ data, title }) {
               }
             />
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 1 }} />
-            <Area
-              type="monotone"
-              dataKey="likes"
-              stroke="#8b80c5"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorLikes)"
-              activeDot={{ r: 4, fill: "#8b80c5", stroke: "rgba(8,6,14,0.8)", strokeWidth: 2 }}
-            />
-            <Area
-              type="monotone"
-              dataKey="views"
-              stroke="#5a88ba"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorViews)"
-              activeDot={{ r: 4, fill: "#5a88ba", stroke: "rgba(8,6,14,0.8)", strokeWidth: 2 }}
-            />
+            {SERIES.map((s) => (
+              <Area
+                key={s.key}
+                type="monotone"
+                dataKey={s.key}
+                stroke={s.color}
+                strokeWidth={2}
+                fillOpacity={1}
+                fill={`url(#color-${s.key})`}
+                activeDot={{
+                  r: 4,
+                  fill: s.color,
+                  stroke: "rgba(8,6,14,0.8)",
+                  strokeWidth: 2,
+                }}
+              />
+            ))}
           </AreaChart>
         </ResponsiveContainer>
+      </div>
+      <div className="chart-legend">
+        {SERIES.map((s) => (
+          <span key={s.key} className="chart-legend-item">
+            <span className="tooltip-swatch" style={{ background: s.color }} />
+            {s.label}
+          </span>
+        ))}
       </div>
     </div>
   );
