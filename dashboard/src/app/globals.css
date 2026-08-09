@@ -1,21 +1,28 @@
+/* Velune theme — minimal, calm, human-centered.
+   Deep charcoals, soft whites, muted purples/blues. */
 :root {
-  --bg-color: #0d0f12;
-  --panel-bg: rgba(23, 27, 33, 0.6);
-  --panel-border: rgba(255, 255, 255, 0.08);
-  --text-primary: #f0f2f5;
-  --text-secondary: #8b949e;
-  
-  --primary-glow: rgba(94, 114, 228, 0.15);
-  --accent-color: #5e72e4;
-  --accent-hover: #7b8cf0;
-  
-  --heat-0: #1b1f26;
-  --heat-1: #204130;
-  --heat-2: #2b7044;
-  --heat-3: #39a35d;
-  --heat-4: #4ce57e;
-  
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --bg-color: #111015;
+  --panel-bg: rgba(26, 25, 33, 0.55);
+  --panel-border: rgba(235, 233, 245, 0.08);
+  --text-primary: #ece9f4;
+  --text-secondary: #948fa3;
+
+  --primary-glow: rgba(139, 128, 197, 0.14);
+  --accent-color: #8b80c5;
+  --accent-hover: #a198d6;
+  --accent-soft: #b3aade;
+  --on-accent: #14121b;
+
+  --success-color: #8fbfa8;
+  --error-color: #e07a7a;
+
+  --heat-0: #1d1c24;
+  --heat-1: #322e4b;
+  --heat-2: #4b4478;
+  --heat-3: #6c62aa;
+  --heat-4: #978bdb;
+
+  --glass-shadow: 0 8px 32px 0 rgba(8, 6, 14, 0.4);
 }
 
 * {
@@ -79,7 +86,8 @@ body {
 .sidebar-logo {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #5e72e4, #825ee4);
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-soft));
+  color: var(--on-accent);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -164,9 +172,9 @@ body {
 }
 
 .account-item.active {
-  background: rgba(94, 114, 228, 0.1);
+  background: var(--primary-glow);
   border-color: var(--accent-color);
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .account-name {
@@ -231,7 +239,7 @@ body {
 /* Buttons */
 .primary-button {
   background: var(--accent-color);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   padding: 10px 20px;
   border-radius: 8px;
