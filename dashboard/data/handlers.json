@@ -11,5 +11,17 @@
     "monthlyPay": 5000,
     "currency": "₹",
     "submittedAt": "2026-08-09T13:10:48.032Z"
+  },
+  {
+    "id": "handler_1786282392542_jvrkn5",
+    "handlerName": "Apran Khunger",
+    "countryCode": "+91",
+    "phone": "9499386895",
+    "accounts": [
+      "panjetaworld"
+    ],
+    "monthlyPay": 8000,
+    "currency": "₹",
+    "submittedAt": "2026-08-09T13:33:12.542Z"
   }
 ]

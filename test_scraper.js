@@ -1,5 +1,5 @@
 const { ApifyClient } = require('apify-client');
-
+require('dotenv').config({ path: './dashboard/.env.local' });
 // Initialize the ApifyClient with your API token
 // You can get this for free by signing up at apify.com
 const client = new ApifyClient({
@@ -34,16 +34,8 @@ async function testInstagramScraper(username) {
         console.log(`\n--- SUCCESS: Fetched ${items.length} posts ---`);
 
         // Print out a summary of the posts
-        items.forEach((post, index) => {
-            console.log(`\n[Post ${index + 1}]`);
-            console.log(`Date: ${new Date(post.timestamp).toLocaleString()}`);
-            console.log(`Type: ${post.type}`);
-            console.log(`Likes: ${post.likesCount} | Comments: ${post.commentsCount}`);
-            console.log(`URL: ${post.url}`);
-            // Truncate caption for cleaner output
-            const caption = post.caption || "No caption";
-            console.log(`Caption: ${caption.substring(0, 50).replace(/\n/g, ' ')}...`);
-        });
+        console.log("Raw object of first item:");
+        console.log(JSON.stringify(items[0], null, 2));
 
     } catch (error) {
         console.error("Error scraping Instagram:", error.message);

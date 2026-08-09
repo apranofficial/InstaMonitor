@@ -25,8 +25,18 @@ export function useScrapeData(usernames) {
   // Track the latest request so a stale response never overwrites newer data.
   const requestIdRef = useRef(0);
 
+  // Serialize usernames for dependency comparison.
+  const usernamesKey = JSON.stringify(usernames);
+
   const fetchData = useCallback(
     async ({ force = false } = {}) => {
+      const currentUsernames = JSON.parse(usernamesKey);
+      if (!currentUsernames || currentUsernames.length === 0) {
+        setData({});
+        setLoading(false);
+        return;
+      }
+
       const requestId = ++requestIdRef.current;
       setLoading(true);
       setError(null);
@@ -35,7 +45,7 @@ export function useScrapeData(usernames) {
         const res = await fetch("/api/scrape", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ usernames, forceRefresh: force }),
+          body: JSON.stringify({ usernames: currentUsernames, forceRefresh: force }),
         });
 
         const json = await res.json().catch(() => null);
@@ -62,7 +72,7 @@ export function useScrapeData(usernames) {
         }
       }
     },
-    [usernames]
+    [usernamesKey]
   );
 
   useEffect(() => {

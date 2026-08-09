@@ -1,43 +1,24 @@
 import { NextResponse } from "next/server";
 import { ApifyClient } from "apify-client";
-import { promises as fs } from "fs";
-import path from "path";
+import { connectDB } from "@/lib/db";
+import ScrapeCache from "@/models/ScrapeCache";
 
 const POSTS_PER_ACCOUNT = 30;
 
 // Apify actor runs can take a while — allow up to 5 minutes.
 export const maxDuration = 300;
 
-// On-disk cache so page loads NEVER burn Apify credits.
-// Apify is only called for accounts with no cache, or when the
-// client explicitly sends { forceRefresh: true } (Force Sync button).
-const CACHE_FILE = path.join(process.cwd(), "data", "scrape-cache.json");
-
 // Run the actor with less memory than the 2 GB default — plenty for
 // fetching 30 posts, and it halves the compute units per run.
 const ACTOR_MEMORY_MB = 1024;
-
-async function readCache() {
-  try {
-    const raw = await fs.readFile(CACHE_FILE, "utf8");
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-async function writeCache(cache) {
-  await fs.mkdir(path.dirname(CACHE_FILE), { recursive: true });
-  await fs.writeFile(CACHE_FILE, JSON.stringify(cache, null, 2), "utf8");
-}
 
 /**
  * Scrapes the most recent posts for a single Instagram username
  * using the apify/instagram-scraper actor.
  */
 async function scrapeAccount(client, username) {
-  const run = await client.actor("apify/instagram-scraper").call(
+  // 1. Fetch Posts
+  const runPosts = await client.actor("apify/instagram-scraper").call(
     {
       directUrls: [`https://www.instagram.com/${username}/`],
       resultsType: "posts",
@@ -46,9 +27,9 @@ async function scrapeAccount(client, username) {
     { memory: ACTOR_MEMORY_MB }
   );
 
-  const { items } = await client.dataset(run.defaultDatasetId).listItems();
+  const { items: postItems } = await client.dataset(runPosts.defaultDatasetId).listItems();
 
-  return items.map((post) => ({
+  const posts = postItems.map((post) => ({
     timestamp: post.timestamp ?? null,
     type: post.type ?? null,
     likesCount: post.likesCount ?? 0,
@@ -56,7 +37,28 @@ async function scrapeAccount(client, username) {
     url: post.url ?? null,
     caption: post.caption ?? "",
     displayUrl: post.displayUrl ?? null,
+    viewsCount: post.videoViewCount ?? post.videoPlayCount ?? post.playCount ?? post.viewCount ?? 0,
   }));
+
+  // 2. Fetch Details for Followers Count
+  let followersCount = 0;
+  try {
+    const runDetails = await client.actor("apify/instagram-scraper").call(
+      {
+        directUrls: [`https://www.instagram.com/${username}/`],
+        resultsType: "details",
+      },
+      { memory: ACTOR_MEMORY_MB }
+    );
+    const { items: detailsItems } = await client.dataset(runDetails.defaultDatasetId).listItems();
+    if (detailsItems && detailsItems.length > 0) {
+      followersCount = detailsItems[0].followersCount ?? 0;
+    }
+  } catch (err) {
+    console.error(`Failed to fetch details for ${username}`, err);
+  }
+
+  return { posts, followersCount };
 }
 
 export async function POST(request) {
@@ -100,21 +102,28 @@ export async function POST(request) {
 
   const forceRefresh = body?.forceRefresh === true;
 
-  const cache = await readCache();
+  await connectDB();
+
   const results = {};
   const errors = {};
   const meta = {};
 
-  // Serve cached data unless a force refresh was requested.
+  // Serve cached data from MongoDB unless a force refresh was requested.
   const toScrape = [];
   for (const username of cleaned) {
-    const entry = cache[username];
-    if (!forceRefresh && entry?.posts) {
-      results[username] = entry.posts;
-      meta[username] = { fromCache: true, scrapedAt: entry.scrapedAt };
-    } else {
-      toScrape.push(username);
+    if (!forceRefresh) {
+      const cached = await ScrapeCache.findOne({ username }).lean();
+      if (cached?.posts) {
+        results[username] = {
+          posts: cached.posts,
+          followersCount: cached.followersCount,
+          statsHistory: cached.statsHistory || [],
+        };
+        meta[username] = { fromCache: true, scrapedAt: cached.scrapedAt };
+        continue;
+      }
     }
+    toScrape.push(username);
   }
 
   if (toScrape.length > 0) {
@@ -124,27 +133,50 @@ export async function POST(request) {
     // memory limit; one failure never blocks the others.
     for (const username of toScrape) {
       try {
-        const posts = await scrapeAccount(client, username);
-        const scrapedAt = new Date().toISOString();
-        results[username] = posts;
-        meta[username] = { fromCache: false, scrapedAt };
-        cache[username] = { posts, scrapedAt };
+        const { posts, followersCount } = await scrapeAccount(client, username);
+        const scrapedAt = new Date();
+        
+        // Push the new followers count to history
+        const newHistoryRecord = { date: scrapedAt, followersCount };
+
+        // Upsert into MongoDB cache.
+        const updatedCache = await ScrapeCache.findOneAndUpdate(
+          { username },
+          { 
+            posts, 
+            followersCount,
+            scrapedAt,
+            $push: { statsHistory: newHistoryRecord }
+          },
+          { upsert: true, new: true, lean: true }
+        );
+
+        results[username] = {
+          posts,
+          followersCount,
+          statsHistory: updatedCache.statsHistory || [newHistoryRecord]
+        };
+        meta[username] = { fromCache: false, scrapedAt: scrapedAt.toISOString() };
+
       } catch (err) {
         errors[username] =
           err?.message || "Unknown error while scraping account.";
         // A failed refresh still falls back to stale cache if we have it.
-        if (cache[username]?.posts) {
-          results[username] = cache[username].posts;
+        const stale = await ScrapeCache.findOne({ username }).lean();
+        if (stale?.posts) {
+          results[username] = {
+            posts: stale.posts,
+            followersCount: stale.followersCount,
+            statsHistory: stale.statsHistory || [],
+          };
           meta[username] = {
             fromCache: true,
             stale: true,
-            scrapedAt: cache[username].scrapedAt,
+            scrapedAt: stale.scrapedAt,
           };
         }
       }
     }
-
-    await writeCache(cache).catch(() => {});
   }
 
   const responseBody = { results, meta };

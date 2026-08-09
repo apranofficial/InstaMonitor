@@ -16,7 +16,15 @@ function dayKey(date) {
 function groupPostsByDay(data, accounts) {
   const byDay = {};
   for (const username of accounts) {
-    const posts = data[username] || [];
+    const accountData = data[username];
+    if (!accountData) continue;
+    
+    let posts = [];
+    if (Array.isArray(accountData)) {
+      posts = accountData;
+    } else {
+      posts = accountData.posts || [];
+    }
     for (const post of posts) {
       if (!post.timestamp) continue;
       const date = new Date(post.timestamp);
